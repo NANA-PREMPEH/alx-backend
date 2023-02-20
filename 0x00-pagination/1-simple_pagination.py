@@ -48,3 +48,4 @@ class Server:
             return pages
         pages = self.dataset()
         return pages[t1:t2]
+    
