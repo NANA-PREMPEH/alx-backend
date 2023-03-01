@@ -1,26 +1,13 @@
-
 #!/usr/bin/env python3
-'''
-flask application
-'''
+"""
+Flask application
+"""
+from flask import Flask, render_template, request, g
+from flask_babel import Babel, gettext
 
-from flask import Flask, render_template, request
-from flask_babel import Babel
-from flask import g
 
 app = Flask(__name__)
 babel = Babel(app)
-
-
-class Config(object):
-    ''' Config Class'''
-    LANGUAGES = ["en", "fr"]
-
-
-app.config.from_object(Config)
-Babel.default_locale = 'en'
-Babel.default_timezone = 'UTC'
-
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
     2: {"name": "Beyonce", "locale": "en", "timezone": "US/Central"},
@@ -29,35 +16,43 @@ users = {
 }
 
 
-@app.route('/')
-def index():
-    '''0-index.html.'''
-    return render_template("5-index.html")
+class Config:
+    ''' flask app Config class. '''
+    LANGUAGES = ["en", "fr"]
+    BABEL_DEFAULT_LOCALE = 'en'
+    BABEL_DEFAULT_TIMEZONE = 'UTC'
 
 
 @babel.localeselector
 def get_locale():
-    '''determine the best match with our supported languages.'''
-    locale = request.args.get("locale")
-    if locale:
+    """ Determine the best match with our supported languages. """
+    locale = request.args.get('locale')
+    if locale is not None and locale in Config.LANGUAGES:
         return locale
-    return request.accept_languages.best_match(app.config['LANGUAGES'])
+    locale = request.accept_languages.best_match(app.config.get('LANGUAGES'))
+    return locale
+
+
+app.config.from_object('5-app.Config')
 
 
 def get_user():
-    '''Returns user dictor None'''
-    try:
-        log_as = request.args.get('login_as')
-        return users[int(log_as)]
-    except Exception:
-        return None
+    ''' Returns a user dictionary or None, if the user doesn't exist. '''
+    user_id = request.args.get('login_as')
+    if user_id and int(user_id) in users:
+        return users[int(user_id)]
+    return None
 
 
 @app.before_request
 def before_request():
-    '''set a user as a global on flask.g.user. '''
-    g.user = get_user()
+    ''' Handles request before making the request to the API. '''
+    user = get_user()
+    if user:
+        g.user = user
 
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port="5000")
+@app.route('/')
+def default():
+    """ Returns a 5-index.html template """
+    return render_template('5-index.html')
